@@ -44,21 +44,21 @@ class NotificacaoProxy implements Notificacao {
 
     @Override
     public void enviar(String mensagem) {
-        System.out.println("\n[PROXY LOG] Interceptando requisição de envio...");
+        System.out.println("\n[PROXY LOG] Interceptando requisicao de envio...");
 
         if (!usuarioTemPermissao) {
-            System.err.println("[PROXY AVISO] Acesso negado. Usuário sem permissão para enviar notificações.");
+            System.err.println("PROXY AVISO - Acesso negado. Usuario sem permissao para enviar notificacoes.");
             return;
         }
 
         int maxTentativas = ConfiguracaoGlobal.INSTANCIA.getMaxTentativas();
         if (tentativasRealizadas >= maxTentativas) {
-            System.err.println("[PROXY AVISO] Falha no envio. Limite máximo de " + maxTentativas + " tentativas atingido.");
+            System.err.println("PROXY AVISO - Falha no envio. Limite maximo de " + maxTentativas + " tentativas atingido.");
             return;
         }
 
         tentativasRealizadas++;
-        System.out.println("[PROXY LOG] Validação OK (Tentativa " + tentativasRealizadas + "/" + maxTentativas + "). Encaminhando...");
+        System.out.println("PROXY LOG - Validação OK (Tentativa " + tentativasRealizadas + "/" + maxTentativas + "). Encaminhando...");
         
         notificacaoReal.enviar(mensagem);
     }
@@ -97,7 +97,7 @@ class Main {
         ConfiguracaoGlobal config = ConfiguracaoGlobal.INSTANCIA;
         
         System.out.println("--- " + config.getNomeApp().toUpperCase() + " ---");
-        System.out.println("Configuração Singleton ativa no servidor: " + config.getServidorEnvio());
+        System.out.println("Configuracao Singleton ativa no servidor: " + config.getServidorEnvio());
         System.out.println("------------------------------------------");
 
         try {
