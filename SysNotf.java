@@ -44,7 +44,7 @@ class NotificacaoProxy implements Notificacao {
 
     @Override
     public void enviar(String mensagem) {
-        System.out.println("\n[PROXY LOG] Interceptando requisicao de envio...");
+        System.out.println("\nPROXY LOG - Interceptando requisicao de envio...");
 
         if (!usuarioTemPermissao) {
             System.err.println("PROXY AVISO - Acesso negado. Usuario sem permissao para enviar notificacoes.");
