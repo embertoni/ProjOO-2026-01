@@ -8,15 +8,59 @@ class NotificacaoEmail implements Notificacao {
     }
 }
 
-class NotificacaoSMS implements Notificacao {
-    public void enviar(String msg) {
-        System.out.println("SMS - Enviando: " + msg);
-    }
-}
-
 class NotificacaoPush implements Notificacao {
     public void enviar(String msg) {
         System.out.println("PUSH - Notificacao: " + msg);
+    }
+}
+
+class ApiExternaSMS {
+    public void send(String payload) {
+        System.out.println("SMS (API Externa) - Enviando: " + payload);
+    }
+}
+
+class AdaptadorSMSExterno implements Notificacao {
+    private ApiExternaSMS apiExterna;
+
+    public AdaptadorSMSExterno() {
+        this.apiExterna = new ApiExternaSMS();
+    }
+
+    @Override
+    public void enviar(String mensagem) {
+        apiExterna.send(mensagem);
+    }
+}
+
+class NotificacaoProxy implements Notificacao {
+    private Notificacao notificacaoReal;
+    private int tentativasRealizadas = 0;
+    private boolean usuarioTemPermissao = true;
+
+    public NotificacaoProxy(Notificacao notificacaoReal) {
+        this.notificacaoReal = notificacaoReal;
+    }
+
+    @Override
+    public void enviar(String mensagem) {
+        System.out.println("\n[PROXY LOG] Interceptando requisição de envio...");
+
+        if (!usuarioTemPermissao) {
+            System.err.println("[PROXY AVISO] Acesso negado. Usuário sem permissão para enviar notificações.");
+            return;
+        }
+
+        int maxTentativas = ConfiguracaoGlobal.INSTANCIA.getMaxTentativas();
+        if (tentativasRealizadas >= maxTentativas) {
+            System.err.println("[PROXY AVISO] Falha no envio. Limite máximo de " + maxTentativas + " tentativas atingido.");
+            return;
+        }
+
+        tentativasRealizadas++;
+        System.out.println("[PROXY LOG] Validação OK (Tentativa " + tentativasRealizadas + "/" + maxTentativas + "). Encaminhando...");
+        
+        notificacaoReal.enviar(mensagem);
     }
 }
 
@@ -34,12 +78,17 @@ enum ConfiguracaoGlobal {
 class NotificacaoFactory {
     public static Notificacao criarNotificacao(String tipo) {
         if (tipo == null) return null;
-        return switch (tipo.toLowerCase()) {
-            case "email" -> new NotificacaoEmail();
-            case "sms" -> new NotificacaoSMS();
-            case "push" -> new NotificacaoPush();
+        
+        Notificacao notificacaoBase;
+        
+        switch (tipo.toLowerCase()) {
+            case "email" -> notificacaoBase = new NotificacaoEmail();
+            case "sms" -> notificacaoBase = new AdaptadorSMSExterno();
+            case "push" -> notificacaoBase = new NotificacaoPush();
             default -> throw new IllegalArgumentException("Tipo invalido: " + tipo);
-        };
+        }
+        
+        return new NotificacaoProxy(notificacaoBase);
     }
 }
 
@@ -48,7 +97,7 @@ class Main {
         ConfiguracaoGlobal config = ConfiguracaoGlobal.INSTANCIA;
         
         System.out.println("--- " + config.getNomeApp().toUpperCase() + " ---");
-        System.out.println("Configuracao Singleton ativa no servidor: " + config.getServidorEnvio());
+        System.out.println("Configuração Singleton ativa no servidor: " + config.getServidorEnvio());
         System.out.println("------------------------------------------");
 
         try {
@@ -59,12 +108,11 @@ class Main {
             n2.enviar("Alerta de seguranca: login detectado.");
 
             Notificacao n3 = NotificacaoFactory.criarNotificacao("push");
-            n3.enviar("Voce tem uma nova mensagem na plataforma.");
+            n3.enviar("Mensagem 1");
+            n3.enviar("Mensagem 2");
+            n3.enviar("Mensagem 3");
+            n3.enviar("Mensagem 4 (Esta deve ser bloqueada pelo Proxy)"); 
 
-            System.out.println("\n--- Validacao de Padroes ---");
-            ConfiguracaoGlobal checagem = ConfiguracaoGlobal.INSTANCIA;
-            System.out.println("Mesma instancia de configuracao? " + (config == checagem));
-            
         } catch (Exception e) {
             System.err.println("Erro na execucao: " + e.getMessage());
         }
